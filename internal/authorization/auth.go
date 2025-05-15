@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
+	"github.com/himanshu-holmes/hms/internal/model"
 )
 
 type auth struct {
@@ -15,14 +17,18 @@ type auth struct {
 	refreshTOkenDuration time.Duration
 }
 
-func (a *auth) Tokenize(ctx context.Context, subject string) (string, string, error) {
+func (a *auth) Tokenize(ctx context.Context, id ,username,role string) (string, string, error) {
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":  subject,
+		"sub": id,
+		"username": username,
+		"role": role,
 		"exp":  time.Now().Add(a.accessTokenDuration).Unix(),
 		"type": AccessToken,
 	})
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":  subject,
+		"sub":  id,
+		"username": username,
+		"role": role,
 		"exp":  time.Now().Add(a.refreshTOkenDuration).Unix(),
 		"type": RefreshToken,
 	})
@@ -88,9 +94,27 @@ func (a *auth) Refresh(ctx context.Context, refreshToken string) (string, error)
 	if err != nil {
 	   return "", mapToAuthErrors(err)
 	}
+	id, err := uuid.Parse(subject)
+	if err != nil {
+	   return "", ErrBadClaim
+	}
+	// Get username
+	username, ok := claims["username"].(string)
+	if !ok {
+	   return "", ErrBadClaim
+	}
+	roleStr, ok := claims["role"].(string)
+	if !ok {
+	   return "", ErrBadClaim
+	}
+	role := model.UserRole(roleStr)
+
+	
  
 	newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-	   "sub":  subject,
+	   "sub":  id,
+	   "username": username,
+	   "role": role,
 	   "exp":  time.Now().Add(a.accessTokenDuration).Unix(),
 	   "type": AccessToken,
 	})
@@ -101,6 +125,17 @@ func claimsToInfo(claims jwt.MapClaims)(Info,error){
 	if err != nil {
 		return Info{},ErrBadClaim
 	}
+	id, err := uuid.Parse(subject)
+	if err != nil {
+		return Info{}, ErrBadClaim
+	}
+
+	// Get username
+	username, ok := claims["username"].(string)
+	if !ok {
+		return Info{}, ErrBadClaim
+	}
+
 	expiration,err := claims.GetExpirationTime()
 	if err != nil {
 		return Info{},ErrBadClaim
@@ -109,10 +144,17 @@ func claimsToInfo(claims jwt.MapClaims)(Info,error){
 	if !is {
 		return Info{},ErrBadClaim
 	}
+	roleStr, ok := claims["role"].(string)
+	if !ok {
+		return Info{}, ErrBadClaim
+	}
+	role := model.UserRole(roleStr) 
 	return Info{
-		Subject: subject,
-		ExpirationData: expiration.Time,
+		ID: id,
+		Username: username,
+		ExpirationDate: expiration.Time,
 		Type: TokenType(tokenType),
+		Role: role,
 	},nil
 }
 
@@ -131,5 +173,11 @@ func NewAuthorization(secret []byte,accessTokenDuration time.Duration,refreshTOk
 		secret:               secret,
 		accessTokenDuration:  accessTokenDuration,
 		refreshTOkenDuration: refreshTOkenDuration,
+	}
+}
+
+func AuthWithOutDuration(secret []byte)Authorization{
+	return &auth{
+		secret: secret,
 	}
 }

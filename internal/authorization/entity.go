@@ -3,6 +3,9 @@ package authorization
 import (
 	"errors"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/himanshu-holmes/hms/internal/model"
 )
 
 var (
@@ -20,7 +23,9 @@ var (
 	RefreshToken TokenType = "refresh-token"
 )
 type Info struct {
-	Subject string `json:"subject"`
-	ExpirationData time.Time `json:"expirationDate"`
+    ID uuid.UUID `json:"id"`
+	Username string `json:"username"`
+	ExpirationDate time.Time `json:"expirationDate"`
 	Type TokenType `json:"type"`
+	Role model.UserRole `json:"role"`
 }

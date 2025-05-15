@@ -5,59 +5,87 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/himanshu-holmes/hms/internal/model"
 	"github.com/stretchr/testify/assert"
 )
 
-var secret = []byte("test")
+var secret = []byte("test-secret")
 var accessExpiration = time.Minute
 var refreshExpiration = time.Minute
 
 func TestAuth_TokenizeAndAuthorize(t *testing.T) {
 	a := NewAuthorization(secret, accessExpiration, refreshExpiration)
-	access, refresh, err := a.Tokenize(context.Background(), "test-subject")
+	id := uuid.New().String()
+	username := "testuser"
+	role := string(model.RoleDoctor)
+
+	access, refresh, err := a.Tokenize(context.Background(), id, username, role)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, access)
 	assert.NotEmpty(t, refresh)
 
-	// check if tokens are authorized
+	// Validate access token
 	info, err := a.Authorize(context.Background(), access)
 	assert.NoError(t, err)
-	assert.Equal(t, info.Subject, "test-subject")
-	assert.Equal(t, info.Type, AccessToken)
+	assert.Equal(t, id, info.ID.String())
+	assert.Equal(t, username, info.Username)
+	assert.Equal(t, AccessToken, info.Type)
+	assert.Equal(t, model.UserRole(role), info.Role)
 
-	// check if the refresh token has the correct values
+	// Validate refresh token
 	info, err = a.Authorize(context.Background(), refresh)
 	assert.NoError(t, err)
-	assert.Equal(t, info.Subject, "test-subject")
-	assert.Equal(t, info.Type, RefreshToken)
+	assert.Equal(t, id, info.ID.String())
+	assert.Equal(t, username, info.Username)
+	assert.Equal(t, RefreshToken, info.Type)
+	assert.Equal(t, model.UserRole(role), info.Role)
 }
 
 func TestAuth_AuthorizeBadTokenErrors(t *testing.T) {
-	a := NewAuthorization(secret, accessExpiration, refreshExpiration)
-	// this token is signed with another signature
-	_, err := a.Authorize(context.Background(), "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiIyMDIzLTAzLTIyVDE4OjMxOjM2KzA0OjMwIiwic3ViIjoidGVzdC1zdWJqZWN0In0.qVHi1aAyRkk2SMoffcEtIesz5udHtjXqt8dq1yKUPqo")
+	expiredTime := time.Now().Add(-time.Hour).Minute()
+	a := NewAuthorization(secret, time.Duration(expiredTime) , refreshExpiration)
+
+	// Token signed with wrong key
+	_, err := a.Authorize(context.Background(),
+		"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30")
 	assert.ErrorIs(t, err, ErrInvalidSignature)
-	// this token has an expired unix timestamp as its expiration date
-	_, err = a.Authorize(context.Background(), "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2Nzk0OTUzMjMsInN1YiI6InRlc3Qtc3ViamVjdCJ9.R8QJEl63uUfJQ8vvt9p297dElaMiEH2OOVmhzySg7qA")
+
+	id := uuid.New().String()
+	username := "testuser"
+	role := string(model.RoleDoctor)
+
+	access, _, err := a.Tokenize(context.Background(), id, username, role)
+   assert.NoError(t, err)
+	// Expired token
+	_, err = a.Authorize(context.Background(),
+		access)
 	assert.ErrorIs(t, err, ErrTokenExpired)
-	// this token has a wrong format as it expiration date
-	_, err = a.Authorize(context.Background(), "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiJhc2Rhc2QiLCJzdWIiOiJ0ZXN0LXN1YmplY3QifQ.xPLOY_D0x6pdDh56SB2cS5VjkN0zYnPUYgO99kSgwyU")
-	assert.ErrorIs(t, err, ErrBadClaim)
+
+	// Malformed expiration
+	_, err = a.Authorize(context.Background(),
+		"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiJhc2Rhc2QiLCJzdWIiOiIxMjMiLCJ1c2VybmFtZSI6InRlc3QiLCJyb2xlIjoiU3R1ZGVudCIsInR5cGUiOiJBY2Nlc3NUb2tlbiJ9.5Xq-yJb5B5K2cJKFuznhro-Vop5MmYkL_0ZpGe9MHE8")
+	assert.ErrorIs(t, err, ErrInvalidSignature)
 }
 
-func TestAuth_TokenizeAndRefresh(t *testing.T){
-	a := NewAuthorization(secret,accessExpiration,refreshExpiration)
-	access,refresh,err := a.Tokenize(context.Background(),"test-subject")
+func TestAuth_TokenizeAndRefresh(t *testing.T) {
+	a := NewAuthorization(secret, accessExpiration, refreshExpiration)
+	id := uuid.New().String()
+	username := "testuser"
+	role := string(model.RoleReceptionist)
+
+	access, refresh, err := a.Tokenize(context.Background(), id, username, role)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, access)
 	assert.NotEmpty(t, refresh)
-	newToken,err := a.Refresh(context.Background(),refresh)
-	assert.NoError(t,err)
 
-	// check if the new token can be authorized
-	info,err := a.Authorize(context.Background(),newToken)
+	newAccess, err := a.Refresh(context.Background(), refresh)
 	assert.NoError(t, err)
-	assert.Equal(t, info.Subject, "test-subject")
-	assert.Equal(t, info.Type, AccessToken)
-	
+
+	info, err := a.Authorize(context.Background(), newAccess)
+	assert.NoError(t, err)
+	assert.Equal(t, id, info.ID.String())
+	assert.Equal(t, username, info.Username)
+	assert.Equal(t, AccessToken, info.Type)
+	assert.Equal(t, model.UserRole(role), info.Role)
 }

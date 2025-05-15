@@ -80,6 +80,7 @@ CREATE INDEX idx_patient_visits_doctor_id ON patient_visits(doctor_id);
 CREATE INDEX idx_patient_visits_visit_date ON patient_visits(visit_date);
 
 -- Trigger function for updated_at
+-- +goose StatementBegin
 CREATE OR REPLACE FUNCTION trigger_set_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -87,6 +88,7 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+-- +goose StatementEnd
 
 -- Apply trigger to tables
 CREATE TRIGGER set_users_updated_at
