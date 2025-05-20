@@ -61,6 +61,17 @@ func main() {
 	// Initialize the router	
 	r := gin.Default()
 
+	api := r.Group("/api/v1")
+	{
+		api.POST("/login", userHandler.Login)
+		api.POST("/register", userHandler.CreateUser)
+		api.POST("/create-patient", patientHandler.RegisterPatient)
+		api.GET("/patients/:id", patientHandler.GetPatient)
+		api.GET("/patients", patientHandler.ListPatients)
+		api.GET("/patients/:id/visits", patientVisitHandler.ListPatientVisits)
+		api.POST("/patients/:id/visits", patientVisitHandler.RecordPatientVisit)
+	}
+
 
 
 	r.Run(":" + portEnv)

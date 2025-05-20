@@ -195,7 +195,7 @@ func (h *PatientVisitHandler) GetPatientVisitDetails(c *gin.Context) {
 // @Failure 500 {object} model.APIError "Internal server error"
 // @Router /visits/patient/{patient_id} [get]
 func (h *PatientVisitHandler) ListPatientVisits(c *gin.Context) {
-	patientIDStr := c.Param("patient_id")
+	patientIDStr := c.Param("id")
 	// patientID, err := util.GetUserIDFromString(patientIDStr)
 	// if err != nil {
 	// 	c.JSON(http.StatusBadRequest, model.APIError{Message: "Invalid patient ID format"})

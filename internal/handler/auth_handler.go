@@ -6,7 +6,6 @@ import (
 	"strings" // Added for error checking
 
 	"github.com/gin-gonic/gin"
-	"github.com/himanshu-holmes/hms/internal/config"
 	"github.com/himanshu-holmes/hms/internal/model"
 	"github.com/himanshu-holmes/hms/internal/service"
 	util "github.com/himanshu-holmes/hms/internal/utils"
@@ -32,7 +31,7 @@ func NewAuthHandler(authService service.AuthService) *AuthHandler {
 // @Failure 401 {object} model.APIError "Invalid credentials"
 // @Failure 500 {object} model.APIError "Internal server error"
 // @Router /auth/login [post]
-func (h *AuthHandler) Login(c *gin.Context,apiConfig config.ApiConfig) {
+func (h *AuthHandler) Login(c *gin.Context) {
 	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, model.APIError{Message: "Invalid request body", Details: err.Error()})
