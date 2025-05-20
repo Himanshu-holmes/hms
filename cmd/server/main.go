@@ -8,12 +8,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"golang.org/x/net/context"
 	"github.com/himanshu-holmes/hms/internal/db"
 	"github.com/himanshu-holmes/hms/internal/handler"
+	"github.com/himanshu-holmes/hms/internal/middleware"
 	"github.com/himanshu-holmes/hms/internal/repository"
 	"github.com/himanshu-holmes/hms/internal/service"
 	"github.com/joho/godotenv"
+	"golang.org/x/net/context"
 )
 
 
@@ -65,11 +66,11 @@ func main() {
 	{
 		api.POST("/login", userHandler.Login)
 		api.POST("/register", userHandler.CreateUser)
-		api.POST("/create-patient", patientHandler.RegisterPatient)
-		api.GET("/patients/:id", patientHandler.GetPatient)
-		api.GET("/patients", patientHandler.ListPatients)
-		api.GET("/patients/:id/visits", patientVisitHandler.ListPatientVisits)
-		api.POST("/patients/:id/visits", patientVisitHandler.RecordPatientVisit)
+		api.POST("/create-patient", middleware.AuthMiddleware(), patientHandler.RegisterPatient)
+		api.GET("/patients/:id", middleware.AuthMiddleware(),patientHandler.GetPatient)
+		api.GET("/patients", middleware.AuthMiddleware(),patientHandler.ListPatients)
+		api.GET("/patients/:id/visits", middleware.AuthMiddleware(),patientVisitHandler.ListPatientVisits)
+		api.POST("/patients/:id/visits", middleware.AuthMiddleware(),patientVisitHandler.RecordPatientVisit)
 	}
 
 

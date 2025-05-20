@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -9,11 +10,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/himanshu-holmes/hms/internal/authorization"
 	"github.com/himanshu-holmes/hms/internal/model"
-	
 )
 var (
 	secret = []byte(os.Getenv("SECRET"))
 )
+
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.Request.Header.Get("Authorization")
@@ -39,6 +40,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			})
 			return
 		}
+		log.Println("info",info)
 		c.Set("info",info)
 
 	}
