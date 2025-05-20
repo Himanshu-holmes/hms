@@ -5,10 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/himanshu-holmes/hms/internal/model"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type auth struct {
@@ -94,7 +93,7 @@ func (a *auth) Refresh(ctx context.Context, refreshToken string) (string, error)
 	if err != nil {
 	   return "", mapToAuthErrors(err)
 	}
-	id, err := uuid.Parse(subject)
+	id, err := getUserIDFromString(subject)
 	if err != nil {
 	   return "", ErrBadClaim
 	}
@@ -125,7 +124,7 @@ func claimsToInfo(claims jwt.MapClaims)(Info,error){
 	if err != nil {
 		return Info{},ErrBadClaim
 	}
-	id, err := uuid.Parse(subject)
+	id, err := getUserIDFromString(subject)
 	if err != nil {
 		return Info{}, ErrBadClaim
 	}
@@ -180,4 +179,13 @@ func AuthWithOutDuration(secret []byte)Authorization{
 	return &auth{
 		secret: secret,
 	}
+}
+
+func getUserIDFromString(subject string) (pgtype.UUID, error) {
+    var id pgtype.UUID
+	err := id.Scan(subject)
+    if err != nil {
+        return pgtype.UUID{}, fmt.Errorf("failed to parse UUID from string: %w", err)
+    }
+    return id, nil
 }

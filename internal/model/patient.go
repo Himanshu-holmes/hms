@@ -35,7 +35,7 @@ type Patient struct {
 type PatientCreateRequest struct {
 	FirstName      string  `json:"first_name" validate:"required,max=100"`
 	LastName       string  `json:"last_name" validate:"required,max=100"`
-	DateOfBirthStr string  `json:"date_of_birth" validate:"required,datetime=2006-01-02"` 
+	DateOfBirth string  `json:"date_of_birth" validate:"required,datetime=2006-01-02"` 
 	Gender         *Gender `json:"gender,omitempty" validate:"omitempty,oneof=male female other"`
 	ContactPhone   *string `json:"contact_phone,omitempty" validate:"omitempty,e164"`
 	ContactEmail   *string `json:"contact_email,omitempty" validate:"omitempty,email,max=255"`

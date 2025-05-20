@@ -53,3 +53,7 @@ SET
     updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
+
+-- name: CountPatients :one
+SELECT COUNT(*) FROM patients
+WHERE deleted_at IS NULL;

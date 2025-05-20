@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	
 )
 
 // PatientVisit represents a patient's visit record.

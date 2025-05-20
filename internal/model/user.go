@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	
 )
 
 type UserRole string
@@ -44,6 +45,7 @@ type LoginRequest struct {
 
 // LoginResponse is the API response for a successful login.
 type LoginResponse struct {
-	Token string `json:"token"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 	User  User   `json:"user"` // This User struct is from our model package
 }

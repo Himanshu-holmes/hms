@@ -11,6 +11,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countPatients = `-- name: CountPatients :one
+SELECT COUNT(*) FROM patients
+WHERE deleted_at IS NULL
+`
+
+func (q *Queries) CountPatients(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countPatients)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createPatient = `-- name: CreatePatient :one
 INSERT INTO patients (
     first_name, last_name, date_of_birth, gender,

@@ -3,9 +3,8 @@ package authorization
 import (
 	"errors"
 	"time"
-
-	"github.com/google/uuid"
 	"github.com/himanshu-holmes/hms/internal/model"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 var (
@@ -23,7 +22,7 @@ var (
 	RefreshToken TokenType = "refresh-token"
 )
 type Info struct {
-    ID uuid.UUID `json:"id"`
+    ID pgtype.UUID `json:"id"`
 	Username string `json:"username"`
 	ExpirationDate time.Time `json:"expirationDate"`
 	Type TokenType `json:"type"`

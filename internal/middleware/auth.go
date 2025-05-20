@@ -6,8 +6,10 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/himanshu-holmes/hms/internal/authorization"
 	"github.com/himanshu-holmes/hms/internal/model"
+	
 )
 var (
 	secret = []byte(os.Getenv("SECRET"))
@@ -60,4 +62,11 @@ func RoleMiddleware(requiredRole model.UserRole)gin.HandlerFunc{
 	    c.Next()
 	}
 }
+
+func GetUserIDFromContext(c *gin.Context) (uuid.UUID, bool) {
+	info := c.MustGet("info").(authorization.Info)
+	return info.ID.Bytes, true
+}
+
+
 

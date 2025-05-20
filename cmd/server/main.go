@@ -5,17 +5,17 @@ import (
 	"log"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"golang.org/x/net/context"
-
 	"github.com/himanshu-holmes/hms/internal/db"
+	"github.com/himanshu-holmes/hms/internal/handler"
+	"github.com/himanshu-holmes/hms/internal/repository"
+	"github.com/himanshu-holmes/hms/internal/service"
 	"github.com/joho/godotenv"
 )
 
-type apiConfig struct {
-	DB db.Queries
-}
 
 func main() {
 	godotenv.Load("../../.env")
@@ -41,8 +41,31 @@ func main() {
 
 	fmt.Println("Successfully connected to PostgreSQL!")
 
-	apiCfg := apiConfig{
-		DB: *db.New(dbpool),
-	}
+
+	// Initialize the repositories
+	userRepo := repository.NewUserRepo(db.New(dbpool))
+	patientRepo := repository.NewPatientRepo(db.New(dbpool))
+    patientVisitRepo := repository.NewPatientVisitRepo(db.New(dbpool))
+
+
+	// Initialize the services
+	userService := service.NewAuthService(userRepo)
+	patientService := service.NewPatientService(patientRepo)
+	patientVisitService := service.NewPatientVisitService(patientVisitRepo, patientRepo)
+
+	// Initialize the handlers
+	userHandler := handler.NewAuthHandler(userService)
+	patientHandler := handler.NewPatientHandler(patientService)
+	patientVisitHandler := handler.NewPatientVisitHandler(patientVisitService)
+
+	// Initialize the router	
+	r := gin.Default()
+
+
+
+	r.Run(":" + portEnv)
+       
 	
+
+
 }
