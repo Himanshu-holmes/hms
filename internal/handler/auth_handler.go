@@ -31,7 +31,6 @@ func NewAuthHandler(authService service.AuthService) *AuthHandler {
 // @Failure 401 {object} model.APIError "Unauthorized"
 // @Failure 500 {object} model.APIError "Internal server error"
 // @Router /auth/login [post]
-
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -71,7 +70,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Failure 409 {object} model.APIError "User already exists"
 // @Failure 500 {object} model.APIError "Internal server error"
 // @Router /auth/register [post]
-
 func (h *AuthHandler) CreateUser(c *gin.Context) {
 	var req model.UserCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
