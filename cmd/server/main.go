@@ -1,3 +1,8 @@
+// @title HMS API
+// @version 1.0
+// @description Hospital Management System API.
+// @host localhost:3000
+// @BasePath /api/v1
 package main
 
 import (
@@ -6,14 +11,16 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
-
+	"github.com/himanshu-holmes/hms/docs"
 	"github.com/himanshu-holmes/hms/internal/db"
 	"github.com/himanshu-holmes/hms/internal/handler"
 	"github.com/himanshu-holmes/hms/internal/middleware"
 	"github.com/himanshu-holmes/hms/internal/repository"
 	"github.com/himanshu-holmes/hms/internal/service"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"golang.org/x/net/context"
 )
 
@@ -39,38 +46,49 @@ func main() {
 	if err := dbpool.Ping(context.Background()); err != nil {
 		log.Fatalf("Unable to ping database: %v\n", err)
 	}
-
+	
 	fmt.Println("Successfully connected to PostgreSQL!")
-
-
+	
+	
 	// Initialize the repositories
 	userRepo := repository.NewUserRepo(db.New(dbpool))
 	patientRepo := repository.NewPatientRepo(db.New(dbpool))
     patientVisitRepo := repository.NewPatientVisitRepo(db.New(dbpool))
-
-
+	
+	
 	// Initialize the services
 	userService := service.NewAuthService(userRepo)
 	patientService := service.NewPatientService(patientRepo)
 	patientVisitService := service.NewPatientVisitService(patientVisitRepo, patientRepo)
-
+	
 	// Initialize the handlers
 	userHandler := handler.NewAuthHandler(userService)
 	patientHandler := handler.NewPatientHandler(patientService)
 	patientVisitHandler := handler.NewPatientVisitHandler(patientVisitService)
-
+	
 	// Initialize the router	
 	r := gin.Default()
-
+	
 	api := r.Group("/api/v1")
+	
+	// Swagger documentation
+	 docs.SwaggerInfo.BasePath = "/api/v1"
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	{
-		api.POST("/login", userHandler.Login)
-		api.POST("/register", userHandler.CreateUser)
-		api.POST("/create-patient", middleware.AuthMiddleware(), patientHandler.RegisterPatient)
+		//auth
+		api.POST("/auth/login", userHandler.Login)
+		api.POST("/auth/register", userHandler.CreateUser)
+		// patient
+		api.POST("/patients/create", middleware.AuthMiddleware(), patientHandler.RegisterPatient)
 		api.GET("/patients/:id", middleware.AuthMiddleware(),patientHandler.GetPatient)
 		api.GET("/patients", middleware.AuthMiddleware(),patientHandler.ListPatients)
-		api.GET("/patients/:id/visits", middleware.AuthMiddleware(),patientVisitHandler.ListPatientVisits)
-		api.POST("/patients/:id/visits", middleware.AuthMiddleware(),patientVisitHandler.RecordPatientVisit)
+        api.PATCH("/patients/:id", middleware.AuthMiddleware(),patientHandler.UpdatePatient)
+		api.DELETE("/patients/:id", middleware.AuthMiddleware(),patientHandler.DeletePatient)
+		// visit
+		api.POST("/visits/create", middleware.AuthMiddleware(),patientVisitHandler.RecordPatientVisit)
+		api.GET("/visits/:id", middleware.AuthMiddleware(),patientVisitHandler.GetPatientVisitDetails)
+		api.GET("/visits/:id/list", middleware.AuthMiddleware(),patientVisitHandler.ListPatientVisits)
+		api.PATCH("/visits/:id", middleware.AuthMiddleware(),patientVisitHandler.UpdatePatientVisit)
 	}
 
 

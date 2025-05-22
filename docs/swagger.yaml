@@ -1,0 +1,315 @@
+basePath: /api/v1
+definitions:
+  model.APIError:
+    properties:
+      details:
+        description: Can be map[string]string for validation errors, or a simple string
+      message:
+        type: string
+    type: object
+  model.Gender:
+    enum:
+    - male
+    - female
+    - other
+    type: string
+    x-enum-varnames:
+    - GenderMale
+    - GenderFemale
+    - GenderOther
+  model.PaginatedResponse:
+    properties:
+      data:
+        description: The actual list of items
+      limit:
+        description: The limit used for this page
+        type: integer
+      offset:
+        description: The offset used for this page
+        type: integer
+      page:
+        description: 'Current page number (calculated: offset/limit + 1)'
+        type: integer
+      total:
+        description: Total number of items available across all pages
+        type: integer
+      total_pages:
+        description: 'Total pages (calculated: ceil(total/limit))'
+        type: integer
+    type: object
+  model.Patient:
+    properties:
+      address:
+        type: string
+      contact_email:
+        type: string
+      contact_phone:
+        type: string
+      created_at:
+        type: string
+      date_of_birth:
+        description: Recommended to store as full timestamp, format for display
+        type: string
+      first_name:
+        type: string
+      gender:
+        $ref: '#/definitions/model.Gender'
+      id:
+        type: string
+      last_name:
+        type: string
+      medical_history:
+        type: string
+      registered_by_user_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  model.PatientUpdateRequest:
+    properties:
+      address:
+        maxLength: 500
+        type: string
+      contact_email:
+        maxLength: 255
+        type: string
+      contact_phone:
+        type: string
+      date_of_birth:
+        type: string
+      first_name:
+        maxLength: 100
+        type: string
+      gender:
+        allOf:
+        - $ref: '#/definitions/model.Gender'
+        enum:
+        - male
+        - female
+        - other
+        - prefer_not_to_say
+      last_name:
+        maxLength: 100
+        type: string
+      medical_history:
+        description: Doctors can update this
+        type: string
+    type: object
+  model.PatientVisit:
+    properties:
+      created_at:
+        type: string
+      diagnosis:
+        type: string
+      doctor_id:
+        description: The user ID of the doctor who conducted the visit
+        type: string
+      id:
+        type: string
+      notes:
+        description: Additional notes by doctor or about the visit
+        type: string
+      patient_id:
+        type: string
+      prescription:
+        type: string
+      symptoms:
+        type: string
+      updated_at:
+        type: string
+      visit_date:
+        description: Timestamp of the visit
+        type: string
+    type: object
+  model.PatientVisitUpdateRequest:
+    properties:
+      diagnosis:
+        type: string
+      notes:
+        type: string
+      prescription:
+        type: string
+      symptoms:
+        type: string
+      visit_date:
+        type: string
+    type: object
+host: localhost:3000
+info:
+  contact: {}
+  description: Hospital Management System API.
+  title: HMS API
+  version: "1.0"
+paths:
+  /patients/{id}:
+    delete:
+      description: Only doctors can delete patient records
+      parameters:
+      - description: Patient ID (UUID)
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Patient record deleted successfully
+        "400":
+          description: Validation error, invalid input, or invalid patient ID
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "403":
+          description: Forbidden (e.g., if trying to update restricted fields)
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "404":
+          description: Patient not found
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.APIError'
+      security:
+      - BearerAuth: []
+      summary: Delete a patient record
+      tags:
+      - Patients
+    patch:
+      consumes:
+      - application/json
+      description: Receptionists can update most patient details. Doctors can update
+        patient details, especially medical history.
+      parameters:
+      - description: Patient ID (UUID)
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Patient Update Data (fields to update)
+        in: body
+        name: patientRequest
+        required: true
+        schema:
+          $ref: '#/definitions/model.PatientUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Patient'
+        "400":
+          description: Validation error, invalid input, or invalid patient ID
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "403":
+          description: Forbidden (e.g., if trying to update restricted fields)
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "404":
+          description: Patient not found
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.APIError'
+      security:
+      - BearerAuth: []
+      summary: Update patient details
+      tags:
+      - Patients
+  /visits/{id}:
+    patch:
+      description: Doctors can update patient visit details they recorded. Doctor
+        ID is taken from authenticated user.
+      parameters:
+      - description: Visit ID (UUID) for which to update details
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Patient visit details to update
+        in: body
+        name: visit
+        required: true
+        schema:
+          $ref: '#/definitions/model.PatientVisitUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PatientVisit'
+        "400":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "404":
+          description: Visit not found
+          schema:
+            $ref: '#/definitions/model.APIError'
+      security:
+      - BearerAuth: []
+      summary: Update a specific patient visit
+      tags:
+      - Visits
+  /visits/{id}/list:
+    get:
+      description: Doctors and Receptionists can list patient visits for a specific
+        patient.
+      parameters:
+      - description: Patient ID (UUID) for which to list visits
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Added validation
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Added validation
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PaginatedResponse'
+        "400":
+          description: Invalid patient ID format
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.APIError'
+      security:
+      - BearerAuth: []
+      summary: List patient visits for a specific patient
+      tags:
+      - Visits
+swagger: "2.0"

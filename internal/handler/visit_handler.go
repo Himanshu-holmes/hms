@@ -90,20 +90,19 @@ func parseVisitRequest(c *gin.Context, req interface{}) (*model.ParsedPatientVis
 }
 
 // RecordPatientVisit godoc
-// @Summary Record a new patient visit
-// @Description Doctors can record a new visit for a patient. Doctor ID is taken from the authenticated user.
+// @Summary Record a visit for a patient
+// @Description Doctors can record a visit for a patient.
 // @Tags Visits
 // @Security BearerAuth
-// @Accept json
 // @Produce json
-// @Param visitRequest body model.PatientVisitCreateRequest true "Patient Visit Data"
+// @Param request body model.PatientVisitCreateRequest true "Visit details"
 // @Success 201 {object} model.PatientVisit
-// @Failure 400 {object} model.APIError "Validation error, invalid input, or patient not found"
+// @Failure 400 {object} model.APIError "Invalid request body"
 // @Failure 401 {object} model.APIError "Unauthorized"
-// @Failure 403 {object} model.APIError "Forbidden (not a Doctor)"
-// @Failure 404 {object} model.APIError "Patient specified in request not found"
-// @Failure 500 {object} model.APIError "Internal server error"
-// @Router /visits [post]
+// @Failure 404 {object} model.APIError "Patient not found"
+// @Failure 500 {object} model.APIError "Failed to record patient visit"
+// @Router /visits/create [post]
+
 func (h *PatientVisitHandler) RecordPatientVisit(c *gin.Context) {
 	var req model.PatientVisitCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -147,17 +146,17 @@ func (h *PatientVisitHandler) RecordPatientVisit(c *gin.Context) {
 
 // GetPatientVisitDetails godoc
 // @Summary Get details of a specific patient visit
-// @Description Doctors and Receptionists can view details of a patient visit.
+// @Description Doctors and Receptionists can get details of a specific patient visit.
 // @Tags Visits
 // @Security BearerAuth
 // @Produce json
-// @Param id path string true "Visit ID (UUID)" Format(uuid)
+// @Param id path string true "Visit ID (UUID) for which to get details" Format(uuid)
 // @Success 200 {object} model.PatientVisit
 // @Failure 400 {object} model.APIError "Invalid visit ID format"
-// @Failure 401 {object} model.APIError "Unauthorized"
 // @Failure 404 {object} model.APIError "Visit not found"
-// @Failure 500 {object} model.APIError "Internal server error"
+// @Failure 401 {object} model.APIError "Unauthorized"
 // @Router /visits/{id} [get]
+
 func (h *PatientVisitHandler) GetPatientVisitDetails(c *gin.Context) {
 	visitIDStr := c.Param("id")
 	visitID, err := util.GetUserIDFromString(visitIDStr)
@@ -181,19 +180,17 @@ func (h *PatientVisitHandler) GetPatientVisitDetails(c *gin.Context) {
 }
 
 // ListPatientVisits godoc
-// @Summary List all visits for a specific patient
-// @Description Doctors and Receptionists can list visits for a patient with pagination.
+// @Summary List patient visits for a specific patient
+// @Description Doctors and Receptionists can list patient visits for a specific patient.
 // @Tags Visits
 // @Security BearerAuth
 // @Produce json
-// @Param patient_id path string true "Patient ID (UUID) for whom to list visits" Format(uuid)
-// @Param limit query int false "Page size" default(10) minimum(1) maximum(100)
-// @Param offset query int false "Page offset" default(0) minimum(0)
-// @Success 200 {object} model.PaginatedResponse{data=[]model.PatientVisit} "A paginated list of patient visits"
-// @Failure 400 {object} model.APIError "Invalid patient ID format or pagination parameters"
+// @Param id path string true "Patient ID (UUID) for which to list visits" Format(uuid)
+// @Param pagination query model.PaginationParams true "Pagination parameters"
+// @Success 200 {object} model.PaginatedResponse
+// @Failure 400 {object} model.APIError "Invalid patient ID format"
 // @Failure 401 {object} model.APIError "Unauthorized"
-// @Failure 500 {object} model.APIError "Internal server error"
-// @Router /visits/patient/{patient_id} [get]
+// @Router /visits/{id}/list [get]
 func (h *PatientVisitHandler) ListPatientVisits(c *gin.Context) {
 	patientIDStr := c.Param("id")
 	// patientID, err := util.GetUserIDFromString(patientIDStr)
@@ -239,21 +236,20 @@ func (h *PatientVisitHandler) ListPatientVisits(c *gin.Context) {
 }
 
 // UpdatePatientVisit godoc
-// @Summary Update an existing patient visit
+// @Summary Update a specific patient visit
 // @Description Doctors can update patient visit details they recorded. Doctor ID is taken from authenticated user.
 // @Tags Visits
 // @Security BearerAuth
-// @Accept json
 // @Produce json
-// @Param id path string true "Visit ID (UUID) to update" Format(uuid)
-// @Param visitRequest body model.PatientVisitUpdateRequest true "Patient Visit Update Data (fields to update)"
+// @Param id path string true "Visit ID (UUID) for which to update details" Format(uuid)
+// @Param visit body model.PatientVisitUpdateRequest true "Patient visit details to update"
 // @Success 200 {object} model.PatientVisit
-// @Failure 400 {object} model.APIError "Validation error, invalid input, or invalid visit ID"
-// @Failure 401 {object} model.APIError "Unauthorized"
-// @Failure 403 {object} model.APIError "Forbidden (not a Doctor or not the Doctor who recorded the visit)"
+// @Failure 400 {object} model.APIError "Invalid visit ID format"
+// @Failure 400 {object} model.APIError "Invalid request body"
+// @Failure 400 {object} model.APIError "Validation failed"
 // @Failure 404 {object} model.APIError "Visit not found"
-// @Failure 500 {object} model.APIError "Internal server error"
-// @Router /visits/{id} [put]
+// @Failure 401 {object} model.APIError "Unauthorized"
+// @Router /visits/{id} [patch]
 func (h *PatientVisitHandler) UpdatePatientVisit(c *gin.Context) {
 	visitIDStr := c.Param("id")
 	visitID, err := uuid.Parse(visitIDStr)

@@ -21,16 +21,17 @@ func NewAuthHandler(authService service.AuthService) *AuthHandler {
 
 // Login godoc
 // @Summary User login
-// @Description Authenticate a user and return a JWT token.
+// @Description Log in as a user.
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param loginRequest body model.LoginRequest true "Login Credentials"
+// @Param loginRequest body model.LoginRequest true "Login Data"
 // @Success 200 {object} model.LoginResponse
 // @Failure 400 {object} model.APIError "Validation error or invalid input"
-// @Failure 401 {object} model.APIError "Invalid credentials"
+// @Failure 401 {object} model.APIError "Unauthorized"
 // @Failure 500 {object} model.APIError "Internal server error"
 // @Router /auth/login [post]
+
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -59,17 +60,18 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 // CreateUser godoc
-// @Summary Create a new user (for seeding or admin purposes)
-// @Description Allows creating a new user. In a real app, this might be restricted to admins.
-// @Tags Users
+// @Summary Create a new user
+// @Description Register a new user.
+// @Tags Auth
 // @Accept json
 // @Produce json
-// @Param userRequest body model.UserCreateRequest true "User Creation Data"
+// @Param userRequest body model.UserCreateRequest true "User Registration Data"
 // @Success 201 {object} model.User
 // @Failure 400 {object} model.APIError "Validation error or invalid input"
 // @Failure 409 {object} model.APIError "User already exists"
 // @Failure 500 {object} model.APIError "Internal server error"
-// @Router /users [post]
+// @Router /auth/register [post]
+
 func (h *AuthHandler) CreateUser(c *gin.Context) {
 	var req model.UserCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

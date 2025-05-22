@@ -23,6 +23,7 @@ type PatientHandler struct {
 func NewPatientHandler(patientService service.PatientService) *PatientHandler {
 	return &PatientHandler{patientService: patientService}
 }
+// 
 
 // parsePatientRequest handles parsing for both create and update patient requests.
 // It converts string dates to time.Time.
@@ -78,7 +79,7 @@ func parsePatientRequest(c *gin.Context, req interface{}) (*model.ParsedPatientR
 
 // RegisterPatient godoc
 // @Summary Register a new patient
-// @Description Receptionists can register a new patient.
+// @Description Doctors can register a new patient.
 // @Tags Patients
 // @Security BearerAuth
 // @Accept json
@@ -87,9 +88,9 @@ func parsePatientRequest(c *gin.Context, req interface{}) (*model.ParsedPatientR
 // @Success 201 {object} model.Patient
 // @Failure 400 {object} model.APIError "Validation error or invalid input"
 // @Failure 401 {object} model.APIError "Unauthorized"
-// @Failure 403 {object} model.APIError "Forbidden"
 // @Failure 500 {object} model.APIError "Internal server error"
-// @Router /patients [post]
+// @Router /patients/create [post]
+
 func (h *PatientHandler) RegisterPatient(c *gin.Context) {
 	var req model.PatientCreateRequest
 	
@@ -133,18 +134,20 @@ func (h *PatientHandler) RegisterPatient(c *gin.Context) {
 }
 
 // GetPatient godoc
-// @Summary Get patient details
-// @Description Receptionists and Doctors can view patient details.
+// @Summary Get details of a specific patient
+// @Description Receptionists and Doctors can get details of a specific patient.
 // @Tags Patients
 // @Security BearerAuth
+// @Accept json
 // @Produce json
-// @Param id path string true "Patient ID (UUID)" Format(uuid)
+// @Param id path string true "Patient ID"
 // @Success 200 {object} model.Patient
 // @Failure 400 {object} model.APIError "Invalid patient ID format"
-// @Failure 401 {object} model.APIError "Unauthorized"
 // @Failure 404 {object} model.APIError "Patient not found"
+// @Failure 401 {object} model.APIError "Unauthorized"
 // @Failure 500 {object} model.APIError "Internal server error"
 // @Router /patients/{id} [get]
+
 func (h *PatientHandler) GetPatient(c *gin.Context) {
 	patientIDStr := c.Param("id")
 	patientID,err := uuid.Parse(patientIDStr)
@@ -175,17 +178,19 @@ func (h *PatientHandler) GetPatient(c *gin.Context) {
 
 // ListPatients godoc
 // @Summary List all registered patients
-// @Description Receptionists and Doctors can list all patients with pagination.
+// @Description Receptionists and Doctors can list all registered patients.
 // @Tags Patients
 // @Security BearerAuth
+// @Accept json
 // @Produce json
-// @Param limit query int false "Page size" default(10) minimum(1) maximum(100)
-// @Param offset query int false "Page offset" default(0) minimum(0)
-// @Success 200 {object} model.PaginatedResponse{data=[]model.Patient} "A paginated list of patients"
+// @Param limit query int false "Limit (default: 10)" minimum(1) maximum(100)
+// @Param offset query int false "Offset (default: 0)"
+// @Success 200 {object} model.PaginatedResponse{data=[]model.Patient}
 // @Failure 400 {object} model.APIError "Invalid pagination parameters"
 // @Failure 401 {object} model.APIError "Unauthorized"
 // @Failure 500 {object} model.APIError "Internal server error"
 // @Router /patients [get]
+
 func (h *PatientHandler) ListPatients(c *gin.Context) {
 	var params model.PaginationParams
 	if err := c.ShouldBindQuery(&params); err != nil {
@@ -234,7 +239,7 @@ func (h *PatientHandler) ListPatients(c *gin.Context) {
 // @Failure 403 {object} model.APIError "Forbidden (e.g., if trying to update restricted fields)"
 // @Failure 404 {object} model.APIError "Patient not found"
 // @Failure 500 {object} model.APIError "Internal server error"
-// @Router /patients/{id} [put]
+// @Router /patients/{id} [patch]
 func (h *PatientHandler) UpdatePatient(c *gin.Context) {
 	patientIDStr := c.Param("id")
 	patientID := uuid.MustParse(patientIDStr)
@@ -294,17 +299,16 @@ func (h *PatientHandler) UpdatePatient(c *gin.Context) {
 }
 
 // DeletePatient godoc
-// @Summary Delete a patient record (soft delete)
-// @Description Receptionists can soft delete a patient record.
+// @Summary Delete a patient record
+// @Description Only doctors can delete patient records
 // @Tags Patients
 // @Security BearerAuth
-// @Produce json
 // @Param id path string true "Patient ID (UUID)" Format(uuid)
-// @Success 204 "No Content"
-// @Failure 400 {object} model.APIError "Invalid patient ID format"
+// @Success 204 "Patient record deleted successfully"
+// @Failure 400 {object} model.APIError "Validation error, invalid input, or invalid patient ID"
 // @Failure 401 {object} model.APIError "Unauthorized"
-// @Failure 403 {object} model.APIError "Forbidden"
-// @Failure 404 {object} model.APIError "Patient not found or already deleted"
+// @Failure 403 {object} model.APIError "Forbidden (e.g., if trying to update restricted fields)"
+// @Failure 404 {object} model.APIError "Patient not found"
 // @Failure 500 {object} model.APIError "Internal server error"
 // @Router /patients/{id} [delete]
 func (h *PatientHandler) DeletePatient(c *gin.Context) {
