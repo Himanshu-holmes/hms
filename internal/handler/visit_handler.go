@@ -102,7 +102,6 @@ func parseVisitRequest(c *gin.Context, req interface{}) (*model.ParsedPatientVis
 // @Failure 404 {object} model.APIError "Patient not found"
 // @Failure 500 {object} model.APIError "Failed to record patient visit"
 // @Router /visits/create [post]
-
 func (h *PatientVisitHandler) RecordPatientVisit(c *gin.Context) {
 	var req model.PatientVisitCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -156,7 +155,6 @@ func (h *PatientVisitHandler) RecordPatientVisit(c *gin.Context) {
 // @Failure 404 {object} model.APIError "Visit not found"
 // @Failure 401 {object} model.APIError "Unauthorized"
 // @Router /visits/{id} [get]
-
 func (h *PatientVisitHandler) GetPatientVisitDetails(c *gin.Context) {
 	visitIDStr := c.Param("id")
 	visitID, err := util.GetUserIDFromString(visitIDStr)
