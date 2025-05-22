@@ -17,6 +17,27 @@ definitions:
     - GenderMale
     - GenderFemale
     - GenderOther
+  model.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  model.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+      user:
+        allOf:
+        - $ref: '#/definitions/model.User'
+        description: This User struct is from our model package
+    type: object
   model.PaginatedResponse:
     properties:
       data:
@@ -64,6 +85,38 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  model.PatientCreateRequest:
+    properties:
+      address:
+        maxLength: 500
+        type: string
+      contact_email:
+        maxLength: 255
+        type: string
+      contact_phone:
+        type: string
+      date_of_birth:
+        type: string
+      first_name:
+        maxLength: 100
+        type: string
+      gender:
+        allOf:
+        - $ref: '#/definitions/model.Gender'
+        enum:
+        - male
+        - female
+        - other
+      last_name:
+        maxLength: 100
+        type: string
+      medical_history:
+        type: string
+    required:
+    - date_of_birth
+    - first_name
+    - last_name
     type: object
   model.PatientUpdateRequest:
     properties:
@@ -121,6 +174,24 @@ definitions:
         description: Timestamp of the visit
         type: string
     type: object
+  model.PatientVisitCreateRequest:
+    properties:
+      diagnosis:
+        type: string
+      notes:
+        type: string
+      patient_id:
+        type: string
+      prescription:
+        type: string
+      symptoms:
+        type: string
+      visit_date:
+        description: Expect RFC3339. If empty, handler might default to time.Now()
+        type: string
+    required:
+    - patient_id
+    type: object
   model.PatientVisitUpdateRequest:
     properties:
       diagnosis:
@@ -134,6 +205,64 @@ definitions:
       visit_date:
         type: string
     type: object
+  model.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      last_name:
+        type: string
+      role:
+        $ref: '#/definitions/model.UserRole'
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  model.UserCreateRequest:
+    properties:
+      email:
+        maxLength: 255
+        type: string
+      first_name:
+        maxLength: 100
+        type: string
+      last_name:
+        maxLength: 100
+        type: string
+      password:
+        minLength: 6
+        type: string
+      role:
+        allOf:
+        - $ref: '#/definitions/model.UserRole'
+        enum:
+        - receptionist
+        - doctor
+      username:
+        maxLength: 100
+        minLength: 3
+        type: string
+    required:
+    - password
+    - role
+    - username
+    type: object
+  model.UserRole:
+    enum:
+    - receptionist
+    - doctor
+    type: string
+    x-enum-varnames:
+    - RoleReceptionist
+    - RoleDoctor
 host: localhost:3000
 info:
   contact: {}
@@ -141,6 +270,121 @@ info:
   title: HMS API
   version: "1.0"
 paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Log in as a user.
+      parameters:
+      - description: Login Data
+        in: body
+        name: loginRequest
+        required: true
+        schema:
+          $ref: '#/definitions/model.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.LoginResponse'
+        "400":
+          description: Validation error or invalid input
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.APIError'
+      summary: User login
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user.
+      parameters:
+      - description: User Registration Data
+        in: body
+        name: userRequest
+        required: true
+        schema:
+          $ref: '#/definitions/model.UserCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.User'
+        "400":
+          description: Validation error or invalid input
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "409":
+          description: User already exists
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.APIError'
+      summary: Create a new user
+      tags:
+      - Auth
+  /patients:
+    get:
+      consumes:
+      - application/json
+      description: Receptionists and Doctors can list all registered patients.
+      parameters:
+      - description: 'Limit (default: 10)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: 'Offset (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Patient'
+                  type: array
+              type: object
+        "400":
+          description: Invalid pagination parameters
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.APIError'
+      security:
+      - BearerAuth: []
+      summary: List all registered patients
+      tags:
+      - Patients
   /patients/{id}:
     delete:
       description: Only doctors can delete patient records
@@ -177,6 +421,44 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete a patient record
+      tags:
+      - Patients
+    get:
+      consumes:
+      - application/json
+      description: Receptionists and Doctors can get details of a specific patient.
+      parameters:
+      - description: Patient ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Patient'
+        "400":
+          description: Invalid patient ID format
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "404":
+          description: Patient not found
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.APIError'
+      security:
+      - BearerAuth: []
+      summary: Get details of a specific patient
       tags:
       - Patients
     patch:
@@ -229,7 +511,77 @@ paths:
       summary: Update patient details
       tags:
       - Patients
+  /patients/create:
+    post:
+      consumes:
+      - application/json
+      description: Doctors can register a new patient.
+      parameters:
+      - description: Patient Registration Data
+        in: body
+        name: patientRequest
+        required: true
+        schema:
+          $ref: '#/definitions/model.PatientCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Patient'
+        "400":
+          description: Validation error or invalid input
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.APIError'
+      security:
+      - BearerAuth: []
+      summary: Register a new patient
+      tags:
+      - Patients
   /visits/{id}:
+    get:
+      description: Doctors and Receptionists can get details of a specific patient
+        visit.
+      parameters:
+      - description: Visit ID (UUID) for which to get details
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PatientVisit'
+        "400":
+          description: Invalid visit ID format
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "404":
+          description: Visit not found
+          schema:
+            $ref: '#/definitions/model.APIError'
+      security:
+      - BearerAuth: []
+      summary: Get details of a specific patient visit
+      tags:
+      - Visits
     patch:
       description: Doctors can update patient visit details they recorded. Doctor
         ID is taken from authenticated user.
@@ -310,6 +662,44 @@ paths:
       security:
       - BearerAuth: []
       summary: List patient visits for a specific patient
+      tags:
+      - Visits
+  /visits/create:
+    post:
+      description: Doctors can record a visit for a patient.
+      parameters:
+      - description: Visit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.PatientVisitCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.PatientVisit'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "404":
+          description: Patient not found
+          schema:
+            $ref: '#/definitions/model.APIError'
+        "500":
+          description: Failed to record patient visit
+          schema:
+            $ref: '#/definitions/model.APIError'
+      security:
+      - BearerAuth: []
+      summary: Record a visit for a patient
       tags:
       - Visits
 swagger: "2.0"
