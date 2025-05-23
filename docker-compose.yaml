@@ -4,9 +4,8 @@ services:
     build: .
     ports:
       - "3000:3000"
-    environment:
-      - PORT=3000
-      - DB_URL=postgresql://postgres:12345@db:5432/hms
+    env_file:
+      - app.env
 
     depends_on:
       - db
