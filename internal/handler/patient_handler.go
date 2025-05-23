@@ -90,7 +90,6 @@ func parsePatientRequest(c *gin.Context, req interface{}) (*model.ParsedPatientR
 // @Failure 401 {object} model.APIError "Unauthorized"
 // @Failure 500 {object} model.APIError "Internal server error"
 // @Router /patients/create [post]
-
 func (h *PatientHandler) RegisterPatient(c *gin.Context) {
 	var req model.PatientCreateRequest
 	
@@ -147,7 +146,6 @@ func (h *PatientHandler) RegisterPatient(c *gin.Context) {
 // @Failure 401 {object} model.APIError "Unauthorized"
 // @Failure 500 {object} model.APIError "Internal server error"
 // @Router /patients/{id} [get]
-
 func (h *PatientHandler) GetPatient(c *gin.Context) {
 	patientIDStr := c.Param("id")
 	patientID,err := uuid.Parse(patientIDStr)
@@ -190,7 +188,6 @@ func (h *PatientHandler) GetPatient(c *gin.Context) {
 // @Failure 401 {object} model.APIError "Unauthorized"
 // @Failure 500 {object} model.APIError "Internal server error"
 // @Router /patients [get]
-
 func (h *PatientHandler) ListPatients(c *gin.Context) {
 	var params model.PaginationParams
 	if err := c.ShouldBindQuery(&params); err != nil {

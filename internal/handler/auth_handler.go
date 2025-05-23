@@ -19,45 +19,7 @@ func NewAuthHandler(authService service.AuthService) *AuthHandler {
 	return &AuthHandler{authService: authService}
 }
 
-// Login godoc
-// @Summary User login
-// @Description Log in as a user.
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param loginRequest body model.LoginRequest true "Login Data"
-// @Success 200 {object} model.LoginResponse
-// @Failure 400 {object} model.APIError "Validation error or invalid input"
-// @Failure 401 {object} model.APIError "Unauthorized"
-// @Failure 500 {object} model.APIError "Internal server error"
-// @Router /auth/login [post]
 
-func (h *AuthHandler) Login(c *gin.Context) {
-	var req model.LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, model.APIError{Message: "Invalid request body", Details: err.Error()})
-		return
-	}
-
-	if err := util.ValidateStruct(req); err != nil {
-		c.JSON(http.StatusBadRequest, model.APIError{Message: "Validation failed", Details: util.FormatValidationErrors(err)})
-		return
-	}
-
-	resp, err := h.authService.Login(c.Request.Context(),req)
-	if err != nil {
-		// Distinguish between bad credentials and server errors
-		if err.Error() == "invalid username or password" { // Specific error check
-			c.JSON(http.StatusUnauthorized, model.APIError{Message: err.Error()})
-		} else {
-			log.Printf("Login error: %v", err) // Log internal errors
-			c.JSON(http.StatusInternalServerError, model.APIError{Message: "Login failed due to an internal error"})
-		}
-		return
-	}
-
-	c.JSON(http.StatusOK, resp)
-}
 
 // CreateUser godoc
 // @Summary Create a new user
@@ -71,7 +33,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Failure 409 {object} model.APIError "User already exists"
 // @Failure 500 {object} model.APIError "Internal server error"
 // @Router /auth/register [post]
-
 func (h *AuthHandler) CreateUser(c *gin.Context) {
 	var req model.UserCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -97,4 +58,43 @@ func (h *AuthHandler) CreateUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, user)
+}
+
+// Login godoc
+// @Summary User login
+// @Description Log in as a user.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param loginRequest body model.LoginRequest true "Login Data"
+// @Success 200 {object} model.LoginResponse
+// @Failure 400 {object} model.APIError "Validation error or invalid input"
+// @Failure 401 {object} model.APIError "Unauthorized"
+// @Failure 500 {object} model.APIError "Internal server error"
+// @Router /auth/login [post]
+func (h *AuthHandler) Login(c *gin.Context) {
+	var req model.LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, model.APIError{Message: "Invalid request body", Details: err.Error()})
+		return
+	}
+
+	if err := util.ValidateStruct(req); err != nil {
+		c.JSON(http.StatusBadRequest, model.APIError{Message: "Validation failed", Details: util.FormatValidationErrors(err)})
+		return
+	}
+
+	resp, err := h.authService.Login(c.Request.Context(),req)
+	if err != nil {
+		// Distinguish between bad credentials and server errors
+		if err.Error() == "invalid username or password" { // Specific error check
+			c.JSON(http.StatusUnauthorized, model.APIError{Message: err.Error()})
+		} else {
+			log.Printf("Login error: %v", err) // Log internal errors
+			c.JSON(http.StatusInternalServerError, model.APIError{Message: "Login failed due to an internal error"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
