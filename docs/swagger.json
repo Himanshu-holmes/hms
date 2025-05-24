@@ -6,8 +6,6 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "localhost:3000",
-    "basePath": "/api/v1",
     "paths": {
         "/auth/login": {
             "post": {
@@ -195,6 +193,12 @@
                 "security": [
                     {
                         "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    },
+                    {
+                        "BearerToken": []
                     }
                 ],
                 "description": "Doctors can register a new patient.",
@@ -1065,6 +1069,13 @@
                 "RoleReceptionist",
                 "RoleDoctor"
             ]
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }

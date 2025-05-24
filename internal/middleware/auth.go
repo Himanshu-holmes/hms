@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -24,6 +25,8 @@ func AuthMiddleware() gin.HandlerFunc {
 			})
 			return
 		}
+		// print authHeader
+		fmt.Println("authHeader",authHeader)
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{

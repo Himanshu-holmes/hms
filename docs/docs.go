@@ -201,6 +201,12 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    },
+                    {
+                        "BearerToken": []
                     }
                 ],
                 "description": "Doctors can register a new patient.",
@@ -1072,14 +1078,21 @@ const docTemplate = `{
                 "RoleDoctor"
             ]
         }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:3000",
-	BasePath:         "/api/v1",
+	Host:             "",
+	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "HMS API",
 	Description:      "Hospital Management System API.",

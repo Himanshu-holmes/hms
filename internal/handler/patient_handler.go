@@ -82,6 +82,8 @@ func parsePatientRequest(c *gin.Context, req interface{}) (*model.ParsedPatientR
 // @Description Doctors can register a new patient.
 // @Tags Patients
 // @Security BearerAuth
+// @Security ApiKeyAuth
+// @Security BearerToken
 // @Accept json
 // @Produce json
 // @Param patientRequest body model.PatientCreateRequest true "Patient Registration Data"
@@ -154,13 +156,13 @@ func (h *PatientHandler) GetPatient(c *gin.Context) {
 		return
 	}
 
-	patientUUID, err := patientID.Value()
+	
 	if err != nil {
 		c.JSON(http.StatusBadRequest, model.APIError{Message: "Invalid patient ID format"})
 		return
 	}
 
-	patient, err := h.patientService.GetPatientDetails(c.Request.Context(), patientUUID.(uuid.UUID))
+	patient, err := h.patientService.GetPatientDetails(c.Request.Context(), patientID)
 	if err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "not found") {
 			c.JSON(http.StatusNotFound, model.APIError{Message: "Patient not found"})

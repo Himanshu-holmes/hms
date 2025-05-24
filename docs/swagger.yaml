@@ -1,4 +1,3 @@
-basePath: /api/v1
 definitions:
   model.APIError:
     properties:
@@ -263,7 +262,6 @@ definitions:
     x-enum-varnames:
     - RoleReceptionist
     - RoleDoctor
-host: localhost:3000
 info:
   contact: {}
   description: Hospital Management System API.
@@ -544,6 +542,8 @@ paths:
             $ref: '#/definitions/model.APIError'
       security:
       - BearerAuth: []
+      - ApiKeyAuth: []
+      - BearerToken: []
       summary: Register a new patient
       tags:
       - Patients
@@ -702,4 +702,9 @@ paths:
       summary: Record a visit for a patient
       tags:
       - Visits
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

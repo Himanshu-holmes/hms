@@ -1,6 +1,9 @@
 // @title HMS API
 // @version 1.0
 // @description Hospital Management System API.
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 // @host localhost:3000
 // @BasePath /api/v1
 package main

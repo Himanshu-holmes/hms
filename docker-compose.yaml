@@ -8,9 +8,22 @@ services:
       - app.env
 
     depends_on:
+      - migrations
+
+    command: ["./hms"]
+    
+
+  migrations:
+    build: .
+    env_file:
+      - app.env
+    volumes:
+      - ./db/migrations:/migrations
+
+    depends_on:
       - db
-    command: ["wait-for-it.sh","db","5432","--","./hms"]
-      
+    command: ["wait-for-it.sh", "db", "5432", "--", "goose", "-dir", "/migrations","postgres", "postgresql://postgres:12345@db:5432/hms","up"]
+
   db: 
     image: postgres
     ports:
