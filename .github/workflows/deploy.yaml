@@ -1,0 +1,36 @@
+name: Deploy to Private Server
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: APP_ENV_FILE  # 🔥 connect to the environment you configured!
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Create .env files from GitHub Secrets
+        run: |
+          echo "${{ secrets.APP_ENV_FILE }}" > ./app.env
+          echo "${{ secrets.DB_ENV }}" > ./db.env
+
+      - name: Sync project to server
+        run: |
+          rsync -az -e "ssh -o StrictHostKeyChecking=no" ./ ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USERNAME }}/hms-app
+
+      - name: SSH and run docker-compose
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd ~/hms-app
+            docker-compose down
+            docker-compose up -d --build
+          EOF
