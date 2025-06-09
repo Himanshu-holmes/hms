@@ -8,7 +8,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN go install github.com/pressly/goose/v3/cmd/goose@latest
-COPY wait-for-it.sh .
+COPY wait-for-it.sh /wait-for-it.sh
+RUN chmod +x /wait-for-it.sh
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o hms .
 
 FROM alpine:latest

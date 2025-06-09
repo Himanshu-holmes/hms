@@ -16,13 +16,18 @@ services:
   migrations:
     build: .
     env_file:
-      - app.env
+      - db.env
     volumes:
       - ./db/migrations:/migrations
 
     depends_on:
       - db
-    command: ["wait-for-it.sh", "db", "5432", "--", "goose", "-dir", "/migrations","postgres", "postgresql://postgres:12345@db:5432/hms","up"]
+    command: >
+              /bin/sh -c "
+                ./wait-for-it.sh db 5432 && \
+                goose -dir /migrations postgres \
+                'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}' up
+              "
 
   db: 
     image: postgres
