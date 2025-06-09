@@ -24,7 +24,7 @@ services:
       - db
     command: >
       /bin/sh -c "
-        /usr/local/bin/wait-for-it.sh db:5432 && \
+        /usr/local/bin/wait-for-it.sh db 5432 && \
         goose -dir /migrations postgres \
         \"postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}\" up
       "
