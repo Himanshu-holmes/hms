@@ -24,7 +24,7 @@ services:
       - db
     command: >
         /bin/sh -c "
-          printenv && \
+         \
           /usr/local/bin/wait-for-it.sh db 5432 && \
           goose -dir /migrations postgres \
           \"postgresql://postgres:12345@db:5432/hms\" up
