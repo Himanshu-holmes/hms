@@ -25,8 +25,11 @@ services:
     command: >
       /bin/sh -c "
         /usr/local/bin/wait-for-it.sh db 5432 && \
-        goose -dir /migrations postgres 'postgresql://postgres:12345@db:5432/hms' up
+        for i in 1 2 3 4 5; do
+          goose -dir /migrations postgres 'postgresql://postgres:12345@db:5432/hms' up && break || sleep 3;
+        done
       "
+
 
 
 
