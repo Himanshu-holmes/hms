@@ -11,7 +11,7 @@ services:
       - migrations
 
     command: ["./hms"]
-    
+    restart: unless-stopped
 
   migrations:
     build: .
@@ -28,8 +28,6 @@ services:
         for i in 1 2 3 4 5; do
           goose -dir /migrations postgres 'postgresql://postgres:12345@db:5432/hms' up && break || sleep 3;
         done
-        # wait for app to start
-        /usr/local/bin/wait-for-it.sh app 3000
       "
 
 
