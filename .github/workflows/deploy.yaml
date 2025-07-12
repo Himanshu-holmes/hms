@@ -29,8 +29,10 @@ jobs:
 
       - name: Decode and Configure Kubeconfig
         run: |
+          mkdir -p $HOME/.kube
           echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
-
+      - name: verify access to cluster
+        run: kubectl get nodes
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f k8s/
