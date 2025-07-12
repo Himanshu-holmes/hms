@@ -68,6 +68,7 @@ func main() {
 
 	// Initialize the router
 	r := gin.Default()
+	r.GET("/healthz", func(c *gin.Context) { c.Status(200) })
 
 	api := r.Group("/api/v1")
 
@@ -89,6 +90,7 @@ func main() {
 		api.GET("/visits/:id", middleware.AuthMiddleware(), patientVisitHandler.GetPatientVisitDetails)
 		api.GET("/visits/:id/list", middleware.AuthMiddleware(), patientVisitHandler.ListPatientVisits)
 		api.PATCH("/visits/:id", middleware.AuthMiddleware(), patientVisitHandler.UpdatePatientVisit)
+		
 	}
 	r.Run(":" + portEnv)
 }
