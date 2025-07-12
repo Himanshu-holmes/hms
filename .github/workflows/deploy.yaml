@@ -35,6 +35,7 @@ jobs:
         run: kubectl get nodes
       - name: Create Kubernetes Secret
         run: |
+          kubectl delete secret hms-secrets --namespace=default --ignore-not-found
           kubectl create secret generic hms-secrets \
             --from-literal=DB_URL=${{ secrets.DB_URL }} \
             --from-literal=PORT=${{ secrets.PORT }} \
