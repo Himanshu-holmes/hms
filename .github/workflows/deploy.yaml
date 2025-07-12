@@ -1,4 +1,5 @@
-name: Deploy to Private Server
+# .github/workflows/deploy.yml
+name: Deploy to DOKS
 
 on:
   push:
@@ -7,38 +8,30 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production 
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Log in to DigitalOcean Container Registry
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login registry.digitalocean.com -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_TAG=registry.digitalocean.com/hms-reg/hms:latest
+          docker build -t $IMAGE_TAG .
+          docker push $IMAGE_TAG
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          version: 'latest'
 
-      - name: Create app.env file from GitHub Secrets
+      - name: Decode and Configure Kubeconfig
         run: |
-          echo "DB_URL=${{ secrets.DB_URL }}" > app.env;
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
 
-      - name: Create db.env file from GitHub Secrets
+      - name: Deploy to Kubernetes
         run: |
-          echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" > db.env;
-          echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> db.env;
-          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> db.env;
-
-
-      - name: Sync project to server
-        run: |
-          rsync -azvv -e "ssh -o StrictHostKeyChecking=no" ./ ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/root/hms-app
-
-
-      - name: SSH and run docker compose
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << 'EOF'
-           cd /root/hms-app
-           docker compose down
-           docker compose build
-           docker compose up -d
-          EOF
+          kubectl apply -f k8s/
+          kubectl rollout status deployment/hms-deployment
