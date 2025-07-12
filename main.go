@@ -27,9 +27,8 @@ import (
 	"golang.org/x/net/context"
 )
 
-
 func main() {
-	godotenv.Load("../../.env")
+	godotenv.Load(".env")
 	portEnv := os.Getenv("PORT")
 	if portEnv == "" {
 		portEnv = "3000"
@@ -49,33 +48,31 @@ func main() {
 	if err := dbpool.Ping(context.Background()); err != nil {
 		log.Fatalf("Unable to ping database: %v\n", err)
 	}
-	
+
 	fmt.Println("Successfully connected to PostgreSQL!")
-	
-	
+
 	// Initialize the repositories
 	userRepo := repository.NewUserRepo(db.New(dbpool))
 	patientRepo := repository.NewPatientRepo(db.New(dbpool))
-    patientVisitRepo := repository.NewPatientVisitRepo(db.New(dbpool))
-	
-	
+	patientVisitRepo := repository.NewPatientVisitRepo(db.New(dbpool))
+
 	// Initialize the services
 	userService := service.NewAuthService(userRepo)
 	patientService := service.NewPatientService(patientRepo)
 	patientVisitService := service.NewPatientVisitService(patientVisitRepo, patientRepo)
-	
+
 	// Initialize the handlers
 	userHandler := handler.NewAuthHandler(userService)
 	patientHandler := handler.NewPatientHandler(patientService)
 	patientVisitHandler := handler.NewPatientVisitHandler(patientVisitService)
-	
-	// Initialize the router	
+
+	// Initialize the router
 	r := gin.Default()
-	
+
 	api := r.Group("/api/v1")
-	
+
 	// Swagger documentation
-	 docs.SwaggerInfo.BasePath = "/api/v1"
+	docs.SwaggerInfo.BasePath = "/api/v1"
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	{
 		//auth
@@ -83,15 +80,15 @@ func main() {
 		api.POST("/auth/register", userHandler.CreateUser)
 		// patient
 		api.POST("/patients/create", middleware.AuthMiddleware(), patientHandler.RegisterPatient)
-		api.GET("/patients/:id", middleware.AuthMiddleware(),patientHandler.GetPatient)
-		api.GET("/patients", middleware.AuthMiddleware(),patientHandler.ListPatients)
-        api.PATCH("/patients/:id", middleware.AuthMiddleware(),patientHandler.UpdatePatient)
-		api.DELETE("/patients/:id", middleware.AuthMiddleware(),patientHandler.DeletePatient)
+		api.GET("/patients/:id", middleware.AuthMiddleware(), patientHandler.GetPatient)
+		api.GET("/patients", middleware.AuthMiddleware(), patientHandler.ListPatients)
+		api.PATCH("/patients/:id", middleware.AuthMiddleware(), patientHandler.UpdatePatient)
+		api.DELETE("/patients/:id", middleware.AuthMiddleware(), patientHandler.DeletePatient)
 		// visit
-		api.POST("/visits/create", middleware.AuthMiddleware(),patientVisitHandler.RecordPatientVisit)
-		api.GET("/visits/:id", middleware.AuthMiddleware(),patientVisitHandler.GetPatientVisitDetails)
-		api.GET("/visits/:id/list", middleware.AuthMiddleware(),patientVisitHandler.ListPatientVisits)
-		api.PATCH("/visits/:id", middleware.AuthMiddleware(),patientVisitHandler.UpdatePatientVisit)
+		api.POST("/visits/create", middleware.AuthMiddleware(), patientVisitHandler.RecordPatientVisit)
+		api.GET("/visits/:id", middleware.AuthMiddleware(), patientVisitHandler.GetPatientVisitDetails)
+		api.GET("/visits/:id/list", middleware.AuthMiddleware(), patientVisitHandler.ListPatientVisits)
+		api.PATCH("/visits/:id", middleware.AuthMiddleware(), patientVisitHandler.UpdatePatientVisit)
 	}
 	r.Run(":" + portEnv)
 }
