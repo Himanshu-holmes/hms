@@ -33,6 +33,16 @@ jobs:
           echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
       - name: verify access to cluster
         run: kubectl get nodes
+      - name: Create Kubernetes Secret
+        run: |
+          kubectl create secret generic hms-secrets \
+            --from-literal=DB_URL=${{ secrets.DB_URL }} \
+            --from-literal=PORT=${{ secrets.PORT }} \
+            --from-literal=POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
+            --from-literal=POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+            --from-literal=POSTGRES_DB=${{ secrets.POSTGRES_DB }} \
+            --namespace=default \
+            --dry-run=client -o yaml | kubectl apply -f -  
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f k8s/
