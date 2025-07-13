@@ -25,6 +25,8 @@ import (
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"golang.org/x/net/context"
+	"github.com/bugsnag/bugsnag-go/v2"
+	"github.com/bugsnag/bugsnag-go-gin"
 )
 
 func main() {
@@ -68,6 +70,13 @@ func main() {
 
 	// Initialize the router
 	r := gin.Default()
+	 r.Use(bugsnaggin.AutoNotify(bugsnag.Configuration{
+        // Your Bugsnag project API key, required unless set as environment
+        // variable $BUGSNAG_API_KEY
+        APIKey:        os.Getenv("BUGSNAG_API_KEY"),
+        // The import paths for the Go packages containing your source files
+        ProjectPackages: []string{"main", "github.com/org/myapp"},
+    }))
 	r.GET("/healthz", func(c *gin.Context) { c.Status(200) })
 
 	api := r.Group("/api/v1")

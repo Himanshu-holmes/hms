@@ -44,6 +44,50 @@ jobs:
               --from-literal=POSTGRES_DB="${{ secrets.POSTGRES_DB }}" \
               --namespace=default \
               --dry-run=client -o yaml | kubectl apply -f - 
+      - name: set up helm 
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
+      -  name: Add Datadog Helm repo 
+         run: |
+           helm repo add datadog https://helm.datadoghq.com
+           helm install datadog-operator datadog/datadog-operator \
+            --namespace datadog --create-namespace  
+      - name: Create Datadog Secret 
+        run: |
+          kubectl create secret generic datadog-secret --from-literal api-key="${{ secrets.DATADOG_API_KEY}}" \
+          --namespace datadog \
+          --dry-run=client -o yaml | kubectl apply -f - 
+      - name: Apply DatadogAgent CRD
+        run: |
+          cat <<EOF | kubectl apply -f -
+          kind: "DatadogAgent"
+          apiVersion: "datadoghq.com/v2alpha1"
+          metadata:
+            name: "datadog"
+          spec:
+            global:
+              site: "us3.datadoghq.com"
+              credentials:
+                apiSecret:
+                  secretName: "datadog-secret"
+                  keyName: "api-key"
+              tags:
+                - "env:prod"
+            features:
+              apm:
+                instrumentation:
+                  enabled: true
+                  targets:
+                    - name: "default-target"
+                      ddTraceVersions:
+                        java: "1"
+                        python: "3"
+                        js: "5"
+                        php: "1"
+                        dotnet: "3"
+            EOF
+
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f k8s/
