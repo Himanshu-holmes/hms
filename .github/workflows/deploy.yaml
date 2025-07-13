@@ -52,7 +52,7 @@ jobs:
          run: |
            helm repo add datadog https://helm.datadoghq.com
            helm repo update
-           helm upgrade -- install datadog-operator datadog/datadog-operator \
+           helm upgrade --install datadog-operator datadog/datadog-operator \
             --namespace datadog --create-namespace  
       - name: Create Datadog Secret 
         run: |
