@@ -1,129 +1,66 @@
 # .github/workflows/deploy.yml
-# This workflow deploys a containerized application to a DigitalOcean Kubernetes (DOKS) cluster.
-# It includes steps for building and pushing a Docker image, configuring kubectl,
-# and deploying the application along with Datadog monitoring.
-
 name: Deploy to DOKS
 
 on:
   push:
-    branches: [ "main" ] # It's good practice to quote branch names
+    branches: [main]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Check out the repository's code
       - name: Checkout code
-        uses: actions/checkout@v4 # Using the latest version of the action
+        uses: actions/checkout@v3
 
-      # Step 2: Log in to the DigitalOcean Container Registry
-      # This step uses secrets to securely log in without exposing credentials.
       - name: Log in to DigitalOcean Container Registry
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login registry.digitalocean.com -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
-      # Step 3: Build and Push Docker Image with improved versioning
-      # We tag the image with the Git commit SHA for precise version tracking, in addition to 'latest'.
-      # This makes rollbacks and debugging much easier.
       - name: Build and Push Docker Image
         run: |
-          IMAGE_BASE=registry.digitalocean.com/hms-reg/hms
-          IMAGE_TAG_LATEST=${IMAGE_BASE}:latest
-          IMAGE_TAG_COMMIT=${IMAGE_BASE}:${GITHUB_SHA::7}
-          
-          docker build -t $IMAGE_TAG_LATEST -t $IMAGE_TAG_COMMIT .
-          docker push $IMAGE_TAG_LATEST
-          docker push $IMAGE_TAG_COMMIT
+          IMAGE_TAG=registry.digitalocean.com/hms-reg/hms:latest
+          docker build -t $IMAGE_TAG .
+          docker push $IMAGE_TAG
 
-      # Step 4: Set up kubectl for interacting with the Kubernetes cluster
       - name: Setup kubectl
         uses: azure/setup-kubectl@v3
         with:
           version: 'latest'
 
-      # Step 5: Decode the base64 encoded Kubeconfig from secrets and configure kubectl
-      # This allows the runner to authenticate with your DOKS cluster.
       - name: Decode and Configure Kubeconfig
         run: |
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
-
-      # Step 6: Verify that the connection to the cluster is successful
-      - name: Verify access to cluster
+      - name: verify access to cluster
         run: kubectl get nodes
-
-      # Step 7: Create or update the application's Kubernetes secret
-      # Using 'apply' with '--dry-run' makes this step idempotent, meaning it can be run multiple times safely.
-      - name: Create or Update Kubernetes Secret for the App
+      - name: Create Kubernetes Secret
         run: |
-          kubectl create secret generic hms-secrets \
-            --from-literal=DB_URL="${{ secrets.DB_URL }}" \
-            --from-literal=PORT="${{ secrets.PORT }}" \
-            --from-literal=POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
-            --from-literal=POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
-            --from-literal=POSTGRES_DB="${{ secrets.POSTGRES_DB }}" \
-            --namespace=default \
-            --dry-run=client -o yaml | kubectl apply -f - 
-
-      # Step 8: Set up Helm, the package manager for Kubernetes
-      - name: Set up Helm
+           kubectl delete secret hms-secrets --namespace=default --ignore-not-found
+           kubectl create secret generic hms-secrets \
+              --from-literal=DB_URL="${{ secrets.DB_URL }}" \
+              --from-literal=PORT="${{ secrets.PORT }}" \
+              --from-literal=POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
+              --from-literal=POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
+              --from-literal=POSTGRES_DB="${{ secrets.POSTGRES_DB }}" \
+              --namespace=default \
+              --dry-run=client -o yaml | kubectl apply -f - 
+      - name: set up helm 
         uses: azure/setup-helm@v3
         with:
           version: 'latest'
-      
-      # Step 9: Add the Datadog Helm repository and install the Datadog Operator
-      # Using 'helm upgrade --install' makes the installation idempotent.
-      # It will install the chart if it's not present, or upgrade it if it is.
-      - name: Add Datadog Helm repo and Install Operator
+      -  name: Add Datadog Helm repo 
+         run: |
+           helm repo add datadog https://helm.datadoghq.com
+           helm install datadog-operator datadog/datadog-operator \
+            --namespace datadog --create-namespace  
+      - name: Create Datadog Secret 
         run: |
-          helm repo add datadog https://helm.datadoghq.com
-          helm repo update
-          helm upgrade --install datadog-operator datadog/datadog-operator \
-            --namespace datadog --create-namespace
-
-      # Step 10: Create or update the Datadog API key secret in the 'datadog' namespace
-      - name: Create or Update Datadog Secret
-        run: |
-          kubectl create secret generic datadog-secret \
-            --from-literal api-key="${{ secrets.DATADOG_API_KEY}}" \
-            --namespace datadog \
-            --dry-run=client -o yaml | kubectl apply -f - 
-
-      # Step 11: Apply the DatadogAgent Custom Resource Definition (CRD)
-      # This configures the Datadog Agent, enabling features like APM.
-      # CORRECTION: The 'EOF' marker must not have any leading spaces.
-      # BEST PRACTICE: For maintainability, consider moving this YAML into its own file in your repo
-      # (e.g., 'k8s/datadog-agent.yaml') and applying it with 'kubectl apply -f k8s/datadog-agent.yaml'.
+          kubectl create secret generic datadog-secret --from-literal api-key="${{ secrets.DATADOG_API_KEY}}" \
+          --namespace datadog \
+          --dry-run=client -o yaml | kubectl apply -f - 
       - name: Apply DatadogAgent CRD
-        run: |
-          cat <<EOF | kubectl apply -f -
-apiVersion: datadog.com/v2alpha1
-kind: DatadogAgent
-metadata:
-  name: datadog
-  namespace: datadog
-spec:
-  global:
-    site: us3.datadoghq.com
-    credentials:
-      apiSecret:
-        secretName: datadog-secret
-        keyName: api-key
-    tags:
-      - "env:prod"
-  features:
-    apm:
-      instrumentation:
-        enabled: true
-EOF
-
-      # Step 12: Deploy the application using manifests from the 'k8s' directory
-      # 'kubectl apply' declaratively applies the desired state from your config files.
-      # 'rollout status' waits for the deployment to be successful before continuing.
+        run: kubectl apply -f k8s/datadog-agent.yml
       - name: Deploy to Kubernetes
         run: |
-          # Note: You might need to update the image tag in your deployment.yaml to use the commit SHA
-          # for more precise deployments. For example, using 'sed' or 'kustomize'.
           kubectl apply -f k8s/
-          kubectl rollout status deployment/hms-deployment --namespace=default
+          kubectl rollout status deployment/hms-deployment
